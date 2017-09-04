@@ -1,19 +1,34 @@
-.PHONY: build help
+ifeq ($(NPM_CLIENT),)
+	NPM_CLIENT := npm
+endif
+
+ifeq ($(NPM_CLIENT),yarn)
+	ADD_COMMAND := add
+else
+	ADD_COMMAND := install
+endif
+
+.PHONY: build help install_babel
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 install: package.json ## install dependencies
-	@npm install
+	@$(NPM_CLIENT) install
 
 run: example_install ## run the example
 	@cd example && ../node_modules/.bin/webpack-dev-server --hot --inline --config ./webpack.config.js
 
 example_install: example/package.json
-	@cd example && npm install
+	@cd example && $(NPM_CLIENT) install
+
+install_babel:
+	@$(NPM_CLIENT) $(ADD_COMMAND) babel-cli babel-plugin-transform-react-jsx babel-plugin-add-module-exports babel-plugin-transform-builtin-extend babel-plugin-transform-runtime babel-preset-es2015 babel-preset-stage-0 babel-preset-react
 
 build: ## compile ES6 files to JS
 	@NODE_ENV=production ./node_modules/.bin/babel ./src -d lib --ignore '*.spec.js'
+
+build_shared: install_babel build
 
 watch: ## continuously compile ES6 files to JS
 	@NODE_ENV=production ./node_modules/.bin/babel ./src -d lib --ignore '*.spec.js' --watch
